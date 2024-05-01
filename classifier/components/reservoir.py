@@ -26,14 +26,15 @@ class Reservoir:
 
     def setupDualInteractions(self, interaction_rate=1):
         node_id_list = self.nodes.keys()
-        node_pairs = [[x, y]
-                      for x in node_id_list for y in node_id_list if x < y]
+        node_pairs = [[x, y] for x in node_id_list for y in node_id_list if x < y]
+
+        if interaction_rate > 1:
+            interaction_rate = interaction_rate / len(node_pairs)
 
         node_pairs = self.remove_interactions(node_pairs, interaction_rate)
 
         for node_pair in node_pairs:
-            self.setupIndividualDualInteraction(
-                node1=node_pair[0], node2=node_pair[1])
+            self.setupIndividualDualInteraction(node1=node_pair[0], node2=node_pair[1])
 
     def setupIndividualDualInteraction(self, node1, node2):
         for i, factory in enumerate(self.dualInteractionFactories):
@@ -41,24 +42,25 @@ class Reservoir:
                 interaction_list = []
                 for fac in factory:
                     interactino = fac.generateInteraction(
-                        [node1, node2], n_nodes=len(
-                            self.sys_nodes) + len(self.res_nodes)
+                        [node1, node2],
+                        n_nodes=len(self.sys_nodes) + len(self.res_nodes),
                     )
                     interaction_list.append(interactino)
-                self.dualInteractions["res_interaction_{}_{}{}".format(
-                    i, node1, node2)] = interaction_list
+                self.dualInteractions[
+                    "res_interaction_{}_{}{}".format(i, node1, node2)
+                ] = interaction_list
             else:
                 interaction = factory.generateInteraction(
                     [node1, node2], n_nodes=self.system_nodes + len(self.nodes)
                 )
-                self.dualInteractions["res_interaction_{}_{}{}".format(
-                    i, node1, node2)] = interaction
+                self.dualInteractions[
+                    "res_interaction_{}_{}{}".format(i, node1, node2)
+                ] = interaction
 
     def setupSingleInteractions(self):
         node_id_list = self.nodes.keys()
         for node in node_id_list:
-            self.setupIndividualSingleInteraction(
-                node=node)
+            self.setupIndividualSingleInteraction(node=node)
 
     def setupIndividualSingleInteraction(self, node):
         for i, factory in enumerate(self.singleInteractionFactories):
@@ -66,18 +68,19 @@ class Reservoir:
                 interaction_list = []
                 for fac in factory:
                     interactino = fac.generateInteraction(
-                        node, n_nodes=len(
-                            self.sys_nodes) + len(self.res_nodes)
+                        node, n_nodes=len(self.sys_nodes) + len(self.res_nodes)
                     )
                     interaction_list.append(interactino)
-                self.singleInteractions["res_interaction_{}_{}".format(
-                    i, node)] = interaction_list
+                self.singleInteractions["res_interaction_{}_{}".format(i, node)] = (
+                    interaction_list
+                )
             else:
                 interaction = factory.generateInteraction(
                     node, n_nodes=self.system_nodes + len(self.nodes)
                 )
-                self.singleInteractions["res_interaction_{}_{}".format(
-                    i, node)] = interaction
+                self.singleInteractions["res_interaction_{}_{}".format(i, node)] = (
+                    interaction
+                )
 
     def computeInitialQuantumState(self):
         total_state = 0
@@ -90,13 +93,24 @@ class Reservoir:
 
     def calcDensityDerivative(self, model_state, structure_phase):
         density_derivative = 0
-        for interaction in self.dualInteractions.values():
-            if type(interaction) == list:
-                interaction = interaction[structure_phase]
-            density_derivative += interaction.calc(model_state)
 
-        for interaction in self.singleInteractions.values():
+        for interaction in list(self.dualInteractions.values()) + list(
+            self.singleInteractions.values()
+        ):
             if type(interaction) == list:
                 interaction = interaction[structure_phase]
-            density_derivative += interaction.calc(model_state)
+            if not interaction.function.unitary:
+                density_derivative += interaction.calc(model_state)
         return density_derivative
+
+    def calcUnitaryH(self, structure_phase):
+        H = 0
+
+        for interaction in list(self.dualInteractions.values()) + list(
+            self.singleInteractions.values()
+        ):
+            if type(interaction) == list:
+                interaction = interaction[structure_phase]
+            if interaction.function.unitary:
+                H += interaction.function.H
+        self.unitary_H = H

@@ -1,10 +1,29 @@
 import numpy as np
 
-from .pauli import compositeSigmaPlus, compositeSigmaMinus, compositeSigmaXMulti, compositeSigmaYMulti
+from .pauli import (
+    compositeSigmaPlus,
+    compositeSigmaMinus,
+    compositeSigmaXMulti,
+    compositeSigmaYMulti,
+)
 from quantum.core import DensityMatrix
 
-class DampingFunction:
+
+class UnitaryFunction:
+
+    def __init__(self):
+        self.unitary = True
+
+
+class NonUnitaryFunction:
+
+    def __init__(self):
+        self.unitary = False
+
+
+class DampingFunction(NonUnitaryFunction):
     def __init__(self, nodes, n_nodes, damping_strength):
+        super().__init__()
         self.node = nodes
         self.n_nodes = n_nodes
         self.damping_strength = damping_strength
@@ -16,12 +35,14 @@ class DampingFunction:
         value = (self.damping_strength / 2) * (
             2 * self.sigma_minus * ro * self.sigma_plus
             - ro * self.sigma_plus_minus
-            - self.sigma_plus_minus * ro)
+            - self.sigma_plus_minus * ro
+        )
         return value
 
 
-class CascadeFunction:
+class CascadeFunction(NonUnitaryFunction):
     def __init__(self, nodes, n_nodes, gamma_1, gamma_2):
+        super().__init__()
         self.node1 = nodes[0]
         self.node2 = nodes[1]
         self.n_nodes = n_nodes
@@ -35,11 +56,12 @@ class CascadeFunction:
     def calc(self, ro):
         term1 = self.sigma_plus_2.commutator(self.sigma_minus_1 * ro)
         term2 = (ro * self.sigma_plus_1).commutator(self.sigma_minus_2)
-        return - ((self.gamma_1 * self.gamma_2) ** 0.5) * (term1 + term2)
+        return -((self.gamma_1 * self.gamma_2) ** 0.5) * (term1 + term2)
 
 
-class EnergyExchangeFunction:
+class EnergyExchangeFunction(UnitaryFunction):
     def __init__(self, nodes, n_nodes, coupling_strength):
+        super().__init__()
         self.node1 = nodes[0]
         self.node2 = nodes[1]
         self.n_nodes = n_nodes
@@ -54,8 +76,9 @@ class EnergyExchangeFunction:
         return value
 
 
-class DampedCascadeFunction:
+class DampedCascadeFunction(NonUnitaryFunction):
     def __init__(self, nodes, n_nodes, gamma_1, gamma_2):
+        super().__init__()
         self.node1 = nodes[0]
         self.node2 = nodes[1]
         self.n_nodes = n_nodes
@@ -73,11 +96,19 @@ class DampedCascadeFunction:
             - ro * self.sigma_plus_1 * self.sigma_minus_1
             - self.sigma_plus_1 * self.sigma_minus_1 * ro
         )
-        term2 = 0.1 * (self.gamma_2) * (
-            2 * self.sigma_minus_2 * ro * self.sigma_plus_2
-            - ro * self.sigma_plus_2 * self.sigma_minus_2
-            - self.sigma_plus_2 * self.sigma_minus_2 * ro
+        term2 = (
+            0.1
+            * (self.gamma_2)
+            * (
+                2 * self.sigma_minus_2 * ro * self.sigma_plus_2
+                - ro * self.sigma_plus_2 * self.sigma_minus_2
+                - self.sigma_plus_2 * self.sigma_minus_2 * ro
+            )
         )
-        term3 = - ((self.gamma_1 * self.gamma_2) ** 0.5) * self.sigma_plus_2.commutator(self.sigma_minus_1 * model_state)
-        term4 = - ((self.gamma_1 * self.gamma_2) ** 0.5) * (model_state * self.sigma_plus_1).commutator(self.sigma_minus_2)
+        term3 = -((self.gamma_1 * self.gamma_2) ** 0.5) * self.sigma_plus_2.commutator(
+            self.sigma_minus_1 * model_state
+        )
+        term4 = -((self.gamma_1 * self.gamma_2) ** 0.5) * (
+            model_state * self.sigma_plus_1
+        ).commutator(self.sigma_minus_2)
         return term1 + term2 + term3 + term4

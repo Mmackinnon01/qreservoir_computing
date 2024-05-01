@@ -23,14 +23,17 @@ class Interface:
             for res_node in self.res_nodes
         ]
 
+        if interaction_rate > 1:
+            interaction_rate = interaction_rate / len(node_pairs)
+
         node_pairs = self.remove_interactions(node_pairs, interaction_rate)
         n0 = 0
         n1 = 0
         for pair in node_pairs:
             if pair[0] == 0:
-                n0+=1
+                n0 += 1
             else:
-                n1+=1
+                n1 += 1
 
         while n0 < 1 or n1 < 1:
             node_pairs = [
@@ -44,13 +47,12 @@ class Interface:
             n1 = 0
             for pair in node_pairs:
                 if pair[0] == 0:
-                    n0+=1
+                    n0 += 1
                 else:
-                    n1+=1
+                    n1 += 1
 
         for node_pair in node_pairs:
-            self.setupIndividualInteraction(
-                node1=node_pair[0], node2=node_pair[1])
+            self.setupIndividualInteraction(node1=node_pair[0], node2=node_pair[1])
 
     def setupIndividualInteraction(self, node1, node2):
         for i, factory in enumerate(self.interactionFactories):
@@ -58,24 +60,37 @@ class Interface:
                 interaction_list = []
                 for fac in factory:
                     interaction = fac.generateInteraction(
-                        [node1, node2], n_nodes=len(
-                            self.sys_nodes) + len(self.res_nodes)
+                        [node1, node2],
+                        n_nodes=len(self.sys_nodes) + len(self.res_nodes),
                     )
                     interaction_list.append(interaction)
-                self.interactions["interface_interaction_{}_{}{}".format(
-                    i, node1, node2)] = interaction_list
+                self.interactions[
+                    "interface_interaction_{}_{}{}".format(i, node1, node2)
+                ] = interaction_list
             else:
                 interaction = factory.generateInteraction(
-                    [node1, node2], n_nodes=len(
-                        self.sys_nodes) + len(self.res_nodes)
+                    [node1, node2], n_nodes=len(self.sys_nodes) + len(self.res_nodes)
                 )
-                self.interactions["interface_interaction_{}_{}{}".format(
-                    i, node1, node2)] = interaction
+                self.interactions[
+                    "interface_interaction_{}_{}{}".format(i, node1, node2)
+                ] = interaction
 
     def calcDensityDerivative(self, model_state, structure_phase):
         density_derivative = 0
+        H = 0
         for interaction in self.interactions.values():
             if type(interaction) == list:
                 interaction = interaction[structure_phase]
-            density_derivative += interaction.calc(model_state)
+            if not interaction.function.unitary:
+                density_derivative += interaction.calc(model_state)
         return density_derivative
+
+    def calcUnitaryH(self, structure_phase):
+        H = 0
+
+        for interaction in self.interactions.values():
+            if type(interaction) == list:
+                interaction = interaction[structure_phase]
+            if interaction.function.unitary:
+                H += interaction.function.H
+        self.unitary_H = H

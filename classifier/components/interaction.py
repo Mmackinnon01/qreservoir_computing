@@ -4,9 +4,10 @@ from quantum.core import DensityMatrix
 
 
 class Interaction:
-    def __init__(self, nodes, function):
+    def __init__(self, nodes, function, variables):
         self.nodes = nodes
         self.function = function
+        self.variables = variables
 
     def calc(self, model_state: DensityMatrix):
         return self.function.calc(model_state)
@@ -20,7 +21,7 @@ class InteractionFactory:
     def generateSpecificFunction(self, nodes, n_nodes):
         kwargs = self.generateRandomArguments()
 
-        return self.template_function(nodes, n_nodes, **kwargs)
+        return self.template_function(nodes, n_nodes, **kwargs), kwargs
 
     def generateRandomArguments(self):
         kwargs = self.variable_values.copy()
@@ -32,6 +33,6 @@ class InteractionFactory:
         return kwargs
 
     def generateInteraction(self, nodes, n_nodes):
-        interaction_function = self.generateSpecificFunction(
+        interaction_function, variables = self.generateSpecificFunction(
             nodes, n_nodes)
-        return Interaction(nodes, interaction_function)
+        return Interaction(nodes, interaction_function, variables)
