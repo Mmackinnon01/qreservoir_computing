@@ -24,27 +24,36 @@ def compositeOperator(operator, operation_nodes, n_nodes):
 def compositeSigmaPlus(node, n_nodes):
     return compositeOperator(sigma_plus, [node], n_nodes)
 
+
 def compositeSigmaMinus(node, n_nodes):
     return compositeOperator(sigma_minus, [node], n_nodes)
+
 
 def compositeSigmaX(node, n_nodes):
     return compositeOperator(sigmaX, [node], n_nodes)
 
+
 def compositeSigmaY(node, n_nodes):
     return compositeOperator(sigmaY, [node], n_nodes)
+
 
 def compositeSigmaZ(node, n_nodes):
     return compositeOperator(sigmaZ, [node], n_nodes)
 
+
 def compositeSigmaXMulti(nodes, n_nodes):
     return compositeOperator(sigmaX, nodes, n_nodes)
+
 
 def compositeSigmaYMulti(nodes, n_nodes):
     return compositeOperator(sigmaY, nodes, n_nodes)
 
+
 def sigmaCombinatorics(n_nodes):
     operators = {}
-    for combination in list(product([["x", sigmaX], ["y", sigmaY], ["z", sigmaZ]], repeat=n_nodes)):
+    for combination in list(
+        product([["x", sigmaX], ["y", sigmaY], ["z", sigmaZ]], repeat=n_nodes)
+    ):
         name = ""
         first = True
         for sigma in combination:
@@ -56,3 +65,6 @@ def sigmaCombinatorics(n_nodes):
                 operator = operator.tensor(sigma[1])
         operators[name] = operator
     return operators
+
+
+print(compositeSigmaXMulti([0, 1], 2) + compositeSigmaYMulti([0, 1], 2))
